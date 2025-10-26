@@ -1,8 +1,19 @@
 # Facial Recognition
-A project for face detection and recognition using deep learning.
+
 ## Description
-Includes models for detecting and recognizing faces in images and videos.
+A project for detecting and recognizing faces using deep learning.
+
+## Installation
+1. Clone the repo
+2. Install dependencies using `pip install -r requirements.txt`
+
 ## Usage
-Instructions for running the models.
+Run `python main.py` with an image or video file.
+
+## Features
+- Face detection
+- Face recognition
+- Real-time tracking
+
 ## Last Updated
-2025-10-26 13:52 UTC
+2025-10-26 13:57 UTC
