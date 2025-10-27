@@ -146,7 +146,21 @@ class Datasets:
     test: Optional[torch.utils.data.Dataset]
     class_to_idx: Dict[str, int]
 
+def _ensure_dataset_dir(data_dir: Path):
+    if not data_dir.exists():
+        raise FileNotFoundError(f"Dataset directory '{data_dir}' does not exist.")
+    if not any(data_dir.iterdir()):
+        raise ValueError(f"Dataset directory '{data_dir}' is empty. Populate it with class folders containing images.")
+
+
+def _ensure_split_has_samples(ds: torch.utils.data.Dataset, split_name: str, path: Path):
+    if len(ds) == 0:
+        raise ValueError(f"No images found for the '{split_name}' split at '{path}'.")
+
+
 def build_datasets(data_dir: Path, img_size: int, augment: bool, val_split: float, test_split: float, seed: int) -> Datasets:
+    _ensure_dataset_dir(data_dir)
+
     split_paths = infer_splits(data_dir)
     train_tf, eval_tf = build_transforms(img_size, augment=augment)
 
@@ -154,6 +168,10 @@ def build_datasets(data_dir: Path, img_size: int, augment: bool, val_split: floa
         ds_train = datasets.ImageFolder(split_paths["train"], transform=train_tf)
         ds_val   = datasets.ImageFolder(split_paths["val"],   transform=eval_tf)
         ds_test  = datasets.ImageFolder(split_paths["test"],  transform=eval_tf) if split_paths.get("test") else None
+        _ensure_split_has_samples(ds_train, "train", split_paths["train"])
+        _ensure_split_has_samples(ds_val, "val", split_paths["val"])
+        if ds_test is not None:
+            _ensure_split_has_samples(ds_test, "test", split_paths["test"])
         class_to_idx = ds_train.class_to_idx
         # ensure consistent mapping across splits
         if ds_val.class_to_idx != class_to_idx or (ds_test and ds_test.class_to_idx != class_to_idx):
@@ -163,7 +181,13 @@ def build_datasets(data_dir: Path, img_size: int, augment: bool, val_split: floa
     # Single folder, do stratified split
     base_ds_no_tf = datasets.ImageFolder(data_dir)  # to access targets
     targets = [y for _, y in base_ds_no_tf.samples]
+    if len(base_ds_no_tf) == 0:
+        raise ValueError(f"No images found in '{data_dir}'. Ensure each class folder contains at least one image.")
     train_idx, val_idx, test_idx = stratified_split_indices(targets, val_split, test_split, seed)
+    if len(train_idx) == 0 or len(val_idx) == 0:
+        raise ValueError("Not enough samples to create non-empty train/val splits. Adjust val/test split ratios.")
+    if test_split > 0 and len(test_idx) == 0:
+        raise ValueError("Test split requested but no samples assigned. Reduce test split or add more data.")
 
     # Recreate datasets with transforms using Subset
     base_ds_train = datasets.ImageFolder(data_dir, transform=train_tf)

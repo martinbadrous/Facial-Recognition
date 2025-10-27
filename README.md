@@ -55,6 +55,8 @@ Facial-Recognition/
 
 You can use either of the following formats:
 
+> **Important:** The training script validates the dataset path before loading. Make sure the directory exists, is not empty, and that every split (train/val/test) contains images for each class.
+
 ### **Single folder (auto-split)**
 ```
 dataset/
